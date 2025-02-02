@@ -1,0 +1,10 @@
+python3/runs/
+python3/.venv/
+python3/.pytest_cache/
+
+benchmark/puzzles/level0_transformed/
+benchmark/puzzles/level0/
+
+python3/puzzle_images/
+
+__pycache__/
