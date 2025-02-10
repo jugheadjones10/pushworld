@@ -241,6 +241,9 @@ poetry run pip install "stable_baselines3==2.0.0a1"
         # for idx, trunc in enumerate(truncations):
         #     if trunc:
         #         real_next_obs[idx] = infos["final_observation"][idx]
+
+        # Read "Vector Environments" section in https://gymnasium.farama.org/gymnasium_release_notes/
+        # on why we don't need to handle final_observation like the above anymore.
         rb.add(obs, next_obs, actions, rewards, terminations, infos)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
