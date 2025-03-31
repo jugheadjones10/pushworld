@@ -185,9 +185,13 @@ class PushWorldPuzzle:
                 position = (0, 0)
             else:
                 xx, yy = zip(*pixels)
+                # We are getting the coordinates to use as the object's frame of reference
                 position = (min(xx), min(yy))
 
             pixels = subtract_from_points(pixels, position)
+            # Here, obj_pixels stores coordinates of objects relative to the position variable above
+            # object_positions simply stores the object's frame of reference coordinates
+            # In this case, pixels is more like "actual frame"
             object_positions[elem_id] = position
             obj_pixels[elem_id] = pixels
 
@@ -225,7 +229,7 @@ class PushWorldPuzzle:
                 )
 
             if elem_id[0] == "g":
-                self._goal_state += (object_positions[elem_id], )
+                self._goal_state += (object_positions[elem_id],)
                 movable_id = "m" + elem_id[1:]
                 assert (
                     movable_id in obj_pixels
@@ -253,7 +257,9 @@ class PushWorldPuzzle:
         self._agent_wall_positions = obj_pixels["aw"]
         self._wall_positions = obj_pixels["w"]
 
+        # Goal state is the coordinate of the goal object
         self._goal_state = tuple(self._goal_state)
+        # Initial state is the coordinate of the movable objects (including agents and boxes)
         self._initial_state = tuple(object_positions[elem_id] for elem_id in movables)
 
         # Create all collision data structures
@@ -467,6 +473,62 @@ class PushWorldPuzzle:
             )
 
         return image
+
+    def render_simple(
+        self,
+        state: State,
+    ) -> np.ndarray:
+        """Creates a simplified representation of the given state. We return a 2D array where each element encodes
+        the identity of the object in the corresponding position.
+
+        Agent: 1
+        Movable : 2
+        Wall: 3
+        Goal: 4
+
+        Args:
+            state: The state to render.
+            border_width: The pixel width of the border drawn to indicate object
+                boundaries. Must be >= 1.
+            pixels_per_cell: The pixel width and height of a discrete position in the
+                environment. Must be >= 1 + 2 * border_width.
+
+        Returns:
+            The 2D array of shape (height, width) with integer values.
+        """
+
+        # 2D np array of size self._height and self._width
+        image = np.zeros((self._height, self._width), np.uint8)
+
+        # Loop through self._walls and populate the image with 3s
+        for wall_coord in self._walls.cells:
+            image[wall_coord] = 3
+
+        # First movable object is the agent
+        image[state[0]] = 1
+
+        # Loop through self._movable_objects and populate the image with 2s
+        for movable_coord in state[1:]:
+            image[movable_coord] = 2
+
+        # Loop through self._goals and populate the image with 4s
+        for goal_coord in self._goal_state:
+            image[goal_coord] = 4
+
+        # Create empty tensor [4, height, width]
+        one_hot = np.zeros((4, self._height, self._width), dtype=np.float32)
+        # Fill in the one-hot channels
+        for i in range(1, 5):  # For each object type (0-3)
+            one_hot[i - 1] = (image == i).astype(np.float32)
+
+        # Reshape to height, width, channel
+        one_hot = one_hot.transpose(1, 2, 0)
+
+        return one_hot
+
+        # Add a channel dimension to the image
+        # image = np.expand_dims(image, axis=-1)
+        # return image
 
     def render_plan(
         self,
