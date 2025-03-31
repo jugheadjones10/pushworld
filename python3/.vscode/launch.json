@@ -2,11 +2,61 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: dqn_jax (CartPole-v1)",
+      "name": "Python: dqn_jax (MiniGrid)",
       "type": "python",
       "request": "launch",
       "program": "${workspaceFolder}/train/dqn_jax.py",
-      "args": ["--env-id", "CartPole-v1"],
+      "args": [
+        "--env-id",
+        "MiniGrid-DoorKey-5x5-v0",
+        "--learning-rate",
+        "0.0001",
+        "--gamma",
+        "1.0",
+        "--end-e",
+        "0",
+        "--start-e",
+        "0.05",
+        "--batch-size",
+        "256",
+        "--train-frequency",
+        "128",
+        "--learning-starts",
+        "0",
+        "--render-freq",
+        "50"
+      ],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: REINFORCE (FrozenLake)",
+      "type": "python",
+      "request": "launch",
+      // "program": "${workspacefolder}/train/reinforce_jax.py",
+      "module": "train.reinforce_jax",
+      "args": [
+        "--env-id",
+        "FrozenLake-v1",
+        "--env-kwargs"
+        // "is_slippery",
+        // "False",
+        // "render_mode",
+        // "human"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: REINFORCE (FrozenLake) - Test",
+      "type": "python",
+      "request": "launch",
+      // "program": "${workspacefolder}/train/reinforce_jax.py",
+      "module": "train.reinforce_jax_simple",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
       "console": "integratedTerminal"
     }
   ]
