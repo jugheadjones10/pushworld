@@ -29,9 +29,9 @@ def list_puzzle_files(directory: str) -> List[str]:
 
 def shuffle_puzzles(
     base_dir: str,
-    train_percent: float = 70.0,
-    test_percent: float = 20.0,
-    archive_percent: float = 10.0,
+    train_percent: float = 0.7,
+    test_percent: float = 0.2,
+    archive_percent: float = 0.1,
     seed: Optional[int] = None,
 ) -> Dict[str, int]:
     """Distribute puzzles from original folder to train, test, and archive folders.
@@ -51,11 +51,11 @@ def shuffle_puzzles(
 
     # Normalize percentages
     total = train_percent + test_percent + archive_percent
-    if total != 100.0:
+    if total != 1.0:
         print(f"Warning: Percentages sum to {total}, normalizing to 100%")
-        train_percent = (train_percent / total) * 100
-        test_percent = (test_percent / total) * 100
-        archive_percent = (archive_percent / total) * 100
+        train_percent = train_percent / total
+        test_percent = test_percent / total
+        archive_percent = archive_percent / total
 
     # Folder paths
     original_dir = os.path.join(base_dir, "original")
@@ -82,8 +82,8 @@ def shuffle_puzzles(
 
     # Calculate split points
     total_files = len(puzzle_files)
-    train_count = int(total_files * (train_percent / 100))
-    test_count = int(total_files * (test_percent / 100))
+    train_count = int(total_files * train_percent)
+    test_count = int(total_files * test_percent)
 
     # Split the files
     train_subset = puzzle_files[:train_count]
@@ -131,19 +131,19 @@ def main():
     parser.add_argument(
         "--train",
         type=float,
-        default=49.0,
+        default=0.49,
         help="Percentage for train set (default: 70.0)",
     )
     parser.add_argument(
         "--test",
         type=float,
-        default=1.0,
+        default=0.01,
         help="Percentage for test set (default: 20.0)",
     )
     parser.add_argument(
         "--archive",
         type=float,
-        default=50.0,
+        default=0.5,
         help="Percentage for archive (default: 10.0)",
     )
     parser.add_argument("--seed", type=int, help="Random seed for reproducibility")
