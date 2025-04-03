@@ -69,6 +69,7 @@ class PushWorldEnv(gym.Env):
         self,
         puzzle_path: str,
         braindead: bool = False,
+        seed: Optional[int] = 123,
         max_steps: Optional[int] = None,
         border_width: int = DEFAULT_BORDER_WIDTH,
         pixels_per_cell: int = DEFAULT_PIXELS_PER_CELL,
@@ -137,7 +138,7 @@ class PushWorldEnv(gym.Env):
 
         # Use a fixed arbitrary seed for reproducibility of results and for
         # deterministic tests.
-        self._random_generator = random.Random(123)
+        self._random_generator = random.Random(seed)
 
         self._current_puzzle = None
         self._current_state = None
