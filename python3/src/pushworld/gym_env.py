@@ -24,6 +24,7 @@ from pushworld.puzzle import (
     DEFAULT_BORDER_WIDTH,
     DEFAULT_PIXELS_PER_CELL,
     NUM_ACTIONS,
+    BraindeadPushWorldPuzzle,
     PushWorldPuzzle,
 )
 from pushworld.utils.env_utils import (
@@ -67,6 +68,7 @@ class PushWorldEnv(gym.Env):
     def __init__(
         self,
         puzzle_path: str,
+        braindead: bool = False,
         max_steps: Optional[int] = None,
         border_width: int = DEFAULT_BORDER_WIDTH,
         pixels_per_cell: int = DEFAULT_PIXELS_PER_CELL,
@@ -78,6 +80,7 @@ class PushWorldEnv(gym.Env):
 
         # Store render_mode
         self.render_mode = render_mode
+        self.braindead = braindead
 
         # Initialize pygame display if using human render mode
         self.window = None
@@ -92,7 +95,11 @@ class PushWorldEnv(gym.Env):
         for puzzle_file_path in iter_files_with_extension(
             puzzle_path, PUZZLE_EXTENSION
         ):
-            self._puzzles.append(PushWorldPuzzle(puzzle_file_path))
+            self._puzzles.append(
+                BraindeadPushWorldPuzzle(puzzle_file_path)
+                if self.braindead
+                else PushWorldPuzzle(puzzle_file_path)
+            )
 
         if len(self._puzzles) == 0:
             raise ValueError(f"No PushWorld puzzles found in: {puzzle_path}")
@@ -137,13 +144,17 @@ class PushWorldEnv(gym.Env):
 
         # Define the action space and observation space as attributes.
         self._action_space = gym.spaces.Discrete(NUM_ACTIONS)
-        example_obs = render_observation_padded(
-            self._puzzles[0],
-            self._puzzles[0].initial_state,
-            self._max_cell_height,
-            self._max_cell_width,
-            self._pixels_per_cell,
-            self._border_width,
+        example_obs = (
+            self._puzzles[0].render(self._puzzles[0].initial_state)
+            if self.braindead
+            else render_observation_padded(
+                self._puzzles[0],
+                self._puzzles[0].initial_state,
+                self._max_cell_height,
+                self._max_cell_width,
+                self._pixels_per_cell,
+                self._border_width,
+            )
         )
         self._observation_space = gym.spaces.Box(
             low=0.0,
@@ -211,7 +222,10 @@ class PushWorldEnv(gym.Env):
         #     self._border_width,
         # )
 
-        observation = self._current_puzzle.render_simple(self._current_state)
+        if self.braindead:
+            observation = self._current_puzzle.render(self._current_state)
+        else:
+            observation = self._current_puzzle.render_simple(self._current_state)
         info = {"puzzle_state": self._current_state}
 
         return observation, info
@@ -249,7 +263,10 @@ class PushWorldEnv(gym.Env):
         #     self._pixels_per_cell,
         #     self._border_width,
         # )
-        observation = self._current_puzzle.render_simple(self._current_state)
+        if self.braindead:
+            observation = self._current_puzzle.render(self._current_state)
+        else:
+            observation = self._current_puzzle.render_simple(self._current_state)
 
         terminated = self._current_puzzle.is_goal_state(self._current_state)
 

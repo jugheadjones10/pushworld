@@ -526,10 +526,6 @@ class PushWorldPuzzle:
 
         return one_hot
 
-        # Add a channel dimension to the image
-        # image = np.expand_dims(image, axis=-1)
-        # return image
-
     def render_plan(
         self,
         plan: Iterable[int],
@@ -566,6 +562,167 @@ class PushWorldPuzzle:
             images.append(image)
 
         return images
+
+
+class BraindeadPushWorldPuzzle(PushWorldPuzzle):
+    """A simplified puzzle in the PushWorld environment with only an agent and a goal.
+
+    The puzzle is solved when the agent moves into the goal position.
+    There are no walls or movable objects other than the agent.
+
+    Args:
+        file_path: The path to a `.pwp` file that defines the puzzle.
+    """
+
+    def __init__(self, file_path: str) -> None:
+        obj_pixels = defaultdict(set)
+
+        # Parse puzzle file
+        with open(file_path, "r") as fi:
+            elems_per_row = -1
+            for line_idx, line in enumerate(fi):
+                y = line_idx + 1
+                line_elems = line.split()
+                if y == 1:
+                    elems_per_row = len(line_elems)
+                else:
+                    if elems_per_row != len(line_elems):
+                        raise ValueError(
+                            f"Row {y} does not have the same number of elements as "
+                            "the first row."
+                        )
+
+                for x in range(1, len(line_elems) + 1):
+                    elem_id = line_elems[x - 1].lower()
+                    if elem_id == "a":  # Agent
+                        obj_pixels["a"].add((x, y))
+                    elif elem_id.startswith("g"):  # Goal
+                        obj_pixels["g1"].add((x, y))
+
+        if "a" not in obj_pixels:
+            raise ValueError(
+                "Every puzzle must have an agent object, indicated by 'a'."
+            )
+        if "g1" not in obj_pixels:
+            raise ValueError("Every puzzle must have a goal object, indicated by 'g1'.")
+
+        # Set dimensions
+        self._width = x  # Last x value from the parse loop
+        self._height = y  # Last y value from the parse loop
+
+        # Keep track of agent position
+        agent_positions = obj_pixels["a"]
+        self._agent_position = next(iter(obj_pixels["a"]))  # Get the only position
+
+        # Keep track of goal position
+        goal_positions = obj_pixels["g1"]
+        self._goal_position = next(iter(obj_pixels["g1"]))  # Get the only position
+
+        # Store initial state as just the agent position
+        self._initial_state = (self._agent_position,)
+
+        # For compatibility with parent class
+        self._goal_state = (self._goal_position,)
+        self._movable_objects = [
+            PushWorldObject(
+                position=self._agent_position,
+                fill_color=Colors.AGENT,
+                border_color=Colors.AGENT_BORDER,
+                cells=subtract_from_points(agent_positions, self._agent_position),
+            )
+        ]
+        self._goals = [
+            PushWorldObject(
+                position=self._goal_position,
+                fill_color=Colors.GOAL,
+                border_color=Colors.GOAL_BORDER,
+                cells=subtract_from_points(goal_positions, self._goal_position),
+            )
+        ]
+
+        # No walls or agent walls in braindead puzzles
+        self._wall_positions = set()
+        self._agent_wall_positions = set()
+
+        # For compatibility with parent class
+        self.num_movables = 1  # Just the agent
+        self._agent_collision_map = [set() for _ in range(NUM_ACTIONS)]
+        self._wall_collision_map = [
+            [set() for _ in range(self.num_movables)] for _ in range(NUM_ACTIONS)
+        ]
+        self._movable_collision_map = [
+            [
+                [set() for _ in range(self.num_movables)]
+                for _ in range(self.num_movables)
+            ]
+            for _ in range(NUM_ACTIONS)
+        ]
+        self._pushed_objects = np.zeros((self.num_movables,), bool)
+        self._pushed_objects[AGENT_IDX] = True
+
+    def get_next_state(self, state: State, action: int) -> State:
+        """Returns the state that results from performing the `action` in the given
+        `state`.
+
+        In braindead puzzles, only the agent can move, and it can move freely
+        without any wall or obstacle constraints.
+        """
+        agent_pos = state[AGENT_IDX]
+        displacement = Actions.DISPLACEMENTS[action]
+        new_pos = tuple(np.add(agent_pos, displacement))
+
+        # Check if the new position is within bounds
+        if 1 <= new_pos[0] <= self._width and 1 <= new_pos[1] <= self._height:
+            return (new_pos,)
+        else:
+            return state  # Can't move out of bounds
+
+    def is_goal_state(self, state: State) -> bool:
+        """Returns whether the given state satisfies the goal of this puzzle.
+
+        In braindead puzzles, the goal is achieved when the agent is at the goal position.
+        """
+        return state[AGENT_IDX] == self._goal_position
+
+    def count_achieved_goals(self, state: State) -> int:
+        """Returns 1 if the goal is achieved, 0 otherwise."""
+        return 1 if self.is_goal_state(state) else 0
+
+    def is_valid_plan(self, plan: Iterable[int]) -> bool:
+        """Returns whether the sequence of actions in the plan achieves the goal,
+        starting from the initial state."""
+        state = self._initial_state
+
+        for action in plan:
+            if self.is_goal_state(state):
+                # goal was achieved before the plan ended
+                return True
+            state = self.get_next_state(state, action)
+
+        return self.is_goal_state(state)
+
+    def render(
+        self,
+        state: State,
+    ) -> np.ndarray:
+        """Creates a simplified representation of the given state.
+
+        Returns:
+            A 2-channel 2D array where:
+            - Channel 0: Agent position (1 where agent is present)
+            - Channel 1: Goal position (1 where goal is present)
+        """
+        image = np.zeros((self._height, self._width, 2), np.uint8)
+
+        # Populate the 1st channel with agent's position
+        agent_pos = state[AGENT_IDX]
+        image[agent_pos[1] - 1, agent_pos[0] - 1, 0] = 1
+
+        # Populate the 2nd channel with goal's position
+        goal_pos = self._goal_position
+        image[goal_pos[1] - 1, goal_pos[0] - 1, 1] = 1
+
+        return image
 
 
 def points_overlap(s1: Set[Point], s2: Set[Point], offset: Point) -> bool:
