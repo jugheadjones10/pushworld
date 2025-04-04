@@ -51,7 +51,7 @@ def shuffle_puzzles(
 
     # Normalize percentages
     total = train_percent + test_percent + archive_percent
-    if total != 1.0:
+    if round(total, 10) != 1.0:
         print(f"Warning: Percentages sum to {total}, normalizing to 100%")
         train_percent = train_percent / total
         test_percent = test_percent / total
