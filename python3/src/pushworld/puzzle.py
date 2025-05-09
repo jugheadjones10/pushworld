@@ -130,6 +130,8 @@ class PushWorldPuzzle:
     def __init__(self, file_path: str) -> None:
         obj_pixels = defaultdict(set)
 
+        self._name = file_path.split("/")[-1].split(".")[0]
+
         with open(file_path, "r") as fi:
             elems_per_row = -1
             for line_idx, line in enumerate(fi):
@@ -315,6 +317,10 @@ class PushWorldPuzzle:
 
         self._pushed_objects = np.zeros((num_movables,), bool)
         self._pushed_objects[AGENT_IDX] = True
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     @property
     def initial_state(self) -> State:
@@ -521,7 +527,7 @@ class PushWorldPuzzle:
         for i in range(1, 5):  # For each object type (0-3)
             one_hot[i - 1] = (image == i).astype(np.float32)
 
-        # Reshape to height, width, channel
+        # Reshape to height, width, channel (H x W x C)
         one_hot = one_hot.transpose(1, 2, 0)
 
         return one_hot

@@ -63,6 +63,10 @@ def shuffle_puzzles(
     test_dir = os.path.join(base_dir, "test")
     archive_dir = os.path.join(base_dir, "archive")
 
+    # Create directories if they don't exist
+    for directory in [original_dir, train_dir, test_dir, archive_dir]:
+        os.makedirs(directory, exist_ok=True)
+
     # Clear the target directories first
     for directory in [train_dir, test_dir, archive_dir]:
         for file in os.listdir(directory):
@@ -125,25 +129,25 @@ def main():
     parser.add_argument(
         "--base-dir",
         type=str,
-        default="/Users/kimyoungjin/Projects/monkey/pushworld/python3/src/pushworld/data/braindead",
+        default="/Users/kimyoungjin/Projects/monkey/pushworld/python3/src/pushworld/data/level0_transformed",
         help="Base directory containing the puzzle folders (default: python3/src/pushworld/data/braindead)",
     )
     parser.add_argument(
         "--train",
         type=float,
-        default=0.49,
+        default=0.01,
         help="Percentage for train set (default: 70.0)",
     )
     parser.add_argument(
         "--test",
         type=float,
-        default=0.01,
+        default=0,
         help="Percentage for test set (default: 20.0)",
     )
     parser.add_argument(
         "--archive",
         type=float,
-        default=0.5,
+        default=0.99,
         help="Percentage for archive (default: 10.0)",
     )
     parser.add_argument("--seed", type=int, help="Random seed for reproducibility")

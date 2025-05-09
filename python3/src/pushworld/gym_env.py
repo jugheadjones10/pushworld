@@ -29,7 +29,6 @@ from pushworld.puzzle import (
 )
 from pushworld.utils.env_utils import (
     get_max_puzzle_dimensions,
-    render_observation_padded,
 )
 from pushworld.utils.filesystem import iter_files_with_extension
 
@@ -102,6 +101,9 @@ class PushWorldEnv(gym.Env):
                 else PushWorldPuzzle(puzzle_file_path)
             )
 
+        # Use a set, every time solved, we add to set, also O(1) to get length
+        self._solved_puzzles = set()
+
         if len(self._puzzles) == 0:
             raise ValueError(f"No PushWorld puzzles found in: {puzzle_path}")
         if border_width < 1:
@@ -148,14 +150,15 @@ class PushWorldEnv(gym.Env):
         example_obs = (
             self._puzzles[0].render(self._puzzles[0].initial_state)
             if self.braindead
-            else render_observation_padded(
-                self._puzzles[0],
-                self._puzzles[0].initial_state,
-                self._max_cell_height,
-                self._max_cell_width,
-                self._pixels_per_cell,
-                self._border_width,
-            )
+            else self._puzzles[0].render_simple(self._puzzles[0].initial_state)
+            # else render_observation_padded(
+            #     self._puzzles[0],
+            #     self._puzzles[0].initial_state,
+            #     self._max_cell_height,
+            #     self._max_cell_width,
+            #     self._pixels_per_cell,
+            #     self._border_width,
+            # )
         )
         self._observation_space = gym.spaces.Box(
             low=0.0,
@@ -178,6 +181,11 @@ class PushWorldEnv(gym.Env):
     def current_puzzle(self) -> PushWorldPuzzle or None:
         """The current puzzle, or `None` if `reset` has not yet been called."""
         return self._current_puzzle
+
+    @property
+    def solved_percentage(self) -> float:
+        """The percentage of puzzles that have been solved."""
+        return len(self._solved_puzzles) / len(self._puzzles)
 
     def reset(
         self,
@@ -273,6 +281,7 @@ class PushWorldEnv(gym.Env):
 
         if terminated:
             reward = 10.0
+            self._solved_puzzles.add(self._current_puzzle.name)
         else:
             previous_achieved_goals = self._current_puzzle.count_achieved_goals(
                 previous_state
